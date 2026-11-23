@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Relationship Coach — Basement Elders Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #070913;
+            color: #f8fafc;
+            user-select: none;
+        }
+        .cartoon-font {
+            font-family: 'Fredoka', cursive, sans-serif;
+        }
+        .mono-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        #canvas-container:active {
+            cursor: grabbing;
+        }
+        .comic-card {
+            background: rgba(15, 20, 38, 0.88);
+            border: 2px solid #0f172a;
+            box-shadow: 4px 4px 0px #000000;
+        }
+        .comic-btn {
+            border: 2px solid #090d16;
+            box-shadow: 3px 3px 0px #090d16;
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+        }
+        .comic-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px #090d16;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(168, 85, 247, 0.45);
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen overflow-hidden flex flex-col lg:flex-row bg-[#070913]">
+
+    <!-- ========================================================= -->
+    <!-- LEFT PANEL: CARTOON 3D AVATAR & EMOTION WHEEL VIEWPORT    -->
+    <!-- ========================================================= -->
+    <section class="relative w-full lg:w-[58%] h-[54%] lg:h-full border-b-2 lg:border-b-0 lg:border-r-2 border-slate-800 overflow-hidden">
+        <!-- 3D Viewport -->
+        <div id="canvas-container"></div>
+
+        <!-- Top Left Identity & Micro-Expression Badge -->
+        <div class="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 pointer-events-none flex flex-col gap-2 max-w-[92%] sm:max-w-md">
+            <div class="comic-card rounded-2xl p-3 sm:p-3.5 pointer-events-auto backdrop-blur-md">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <span id="emotion-indicator" class="w-3.5 h-3.5 rounded-full border-2 border-black bg-amber-400"></span>
+                        <h1 class="cartoon-font text-base sm:text-lg font-bold tracking-wide text-white leading-none">
+                            ALYX // BASEMENT ELDER COACH
+                        </h1>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40 mono-font">
+                        TOON-CEL v2.4
+                    </span>
+                </div>
+
+                <div class="mt-2.5 pt-2 border-t border-slate-700/70 flex items-center justify-between gap-3">
+                    <div>
+                        <span class="text-[10px] uppercase tracking-wider text-slate-400 block">Active Affective State</span>
+                        <span id="current-sub-emotion" class="cartoon-font text-lg sm:text-xl font-bold text-amber-300">In Flow</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] uppercase tracking-wider text-slate-400 block">Wheel Sector</span>
+                        <span id="current-core-emotion" class="inline-block px-2.5 py-0.5 rounded-lg text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">GENIUS</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Left Quick Controls & Sector Triggers -->
+        <div class="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 z-10 pointer-events-none flex flex-col gap-2">
+            <div class="comic-card rounded-2xl p-2.5 sm:p-3 pointer-events-auto backdrop-blur-md">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <div class="flex items-center gap-1.5">
+                        <button id="btn-randomize" class="comic-btn px-3 py-1.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:brightness-110 text-white text-xs font-bold flex items-center gap-1.5">
+                            <span>⚡</span> Shift Vibe
+                        </button>
+                        <button id="btn-toggle-auto" class="comic-btn px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border-emerald-500/40 text-xs font-bold flex items-center gap-1.5">
+                            <span id="auto-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span id="auto-text">Auto: ON</span>
+                        </button>
+                        <button id="btn-reset-cam" class="comic-btn px-2.5 py-1.5 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold" title="Reset Camera">
+                            🎯
+                        </button>
+                    </div>
+                    <span id="cycle-timer" class="mono-font text-[11px] text-cyan-300 font-semibold">Next shift: 2.2s</span>
+                </div>
+
+                <!-- 6 Core Emotion Wheel Buttons -->
+                <div id="sector-buttons" class="grid grid-cols-3 sm:grid-cols-6 gap-1.5"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- RIGHT PANEL: ENTERPRISE COACH & LOSSY-SPEED FRAME HEALER  -->
+    <!-- ========================================================= -->
+    <aside class="w-full lg:w-[42%] h-[46%] lg:h-full bg-[#0b0f1d] flex flex-col justify-between p-3 sm:p-5 overflow-y-auto gap-3">
+        
+        <!-- Top: Lossy-Speed & Sub-Tick Frame Heal Telemetry -->
+        <div class="comic-card rounded-2xl p-3.5 bg-gradient-to-br from-slate-900 via-[#11172d] to-indigo-950/50">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 text-[10px] font-bold mono-font">
+                        SUB-HZ HEAL ENGINE
+                    </span>
+                    <span class="text-xs font-bold text-slate-200">Lossy-Speed Morph Pipeline</span>
+                </div>
+                <span id="hz-badge" class="mono-font text-xs font-bold text-emerald-400">144 Hz LOCKED</span>
+            </div>
+
+            <!-- Live Sub-Tick Telemetry Metrics -->
+            <div class="grid grid-cols-3 gap-2 text-center my-2">
+                <div class="bg-slate-950/80 rounded-xl p-2 border border-slate-800">
+                    <span class="text-[10px] text-slate-400 block">Tick Budget</span>
+                    <span id="metric-budget" class="mono-font text-xs sm:text-sm font-bold text-cyan-300">6.94 ms</span>
+                </div>
+                <div class="bg-slate-950/80 rounded-xl p-2 border border-slate-800">
+                    <span class="text-[10px] text-slate-400 block">Heal Latency</span>
+                    <span id="metric-heal" class="mono-font text-xs sm:text-sm font-bold text-emerald-400">0.42 ms</span>
+                </div>
+                <div class="bg-slate-950/80 rounded-xl p-2 border border-slate-800">
+                    <span class="text-[10px] text-slate-400 block">Lossy Compression</span>
+                    <span id="metric-lossy" class="mono-font text-xs sm:text-sm font-bold text-fuchsia-400">94.8%</span>
+                </div>
+            </div>
+
+            <!-- Speed & Lossy Heal Mode Selector -->
+            <div class="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-slate-800/80">
+                <span class="text-[11px] text-slate-300 font-medium">Morph Velocity:</span>
+                <div class="flex gap-1.5">
+                    <button data-speed="1" class="speed-btn comic-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 text-slate-300">1x Cozy</button>
+                    <button data-speed="2.5" class="speed-btn comic-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-cyan-600 text-white">2.5x Overclock</button>
+                    <button data-speed="5" class="speed-btn comic-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 text-slate-300">5x Lossy Hyper</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle: Enterprise Relationship Coach for Basement Elders -->
+        <div class="comic-card rounded-2xl p-3.5 flex-1 flex flex-col justify-between bg-slate-900/90">
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="cartoon-font text-sm sm:text-base font-bold text-amber-300 flex items-center gap-1.5">
+                        🧙‍♂️ Basement Elder Counsel
+                    </span>
+                    <span id="raid-status" class="text-[10px] mono-font px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        CO-OP SYNC: +98%
+                    </span>
+                </div>
+
+                <!-- Dynamic Coaching Speech Bubble -->
+                <div class="bg-slate-950/90 border-2 border-indigo-500/40 rounded-xl p-3 relative">
+                    <p id="coach-dialogue" class="text-xs sm:text-sm text-slate-100 leading-relaxed font-medium">
+                        "Listen up, Guild Elder: when your partner pulls aggro over unwashed dishes, don't cast Defensive Shield—pop a Healing Potion of active listening before the next server tick!"
+                    </p>
+                    <div class="mt-2 flex items-center justify-between text-[11px] text-slate-400">
+                        <span id="coach-buff" class="text-emerald-400 font-semibold">✨ Buff: +15 Empathy Armor</span>
+                        <span id="coach-stance" class="mono-font text-fuchsia-300">Stance: CLEOPATRA CLARITY</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Relationship Scenario Prompts for Basement Elders -->
+            <div class="mt-3">
+                <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
+                    Trigger Basement Elder Relationship Quest:
+                </span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    <button class="quest-btn comic-btn text-left px-2.5 py-2 rounded-xl bg-slate-800/90 hover:bg-indigo-900/60 text-xs text-slate-200 font-medium" data-quest="raid">
+                        🎮 <span class="font-bold text-cyan-300">Raid Night vs. Date Night</span>
+                    </button>
+                    <button class="quest-btn comic-btn text-left px-2.5 py-2 rounded-xl bg-slate-800/90 hover:bg-indigo-900/60 text-xs text-slate-200 font-medium" data-quest="loot">
+                        📦 <span class="font-bold text-amber-300">Shared Loot & Chore Aggro</span>
+                    </button>
+                    <button class="quest-btn comic-btn text-left px-2.5 py-2 rounded-xl bg-slate-800/90 hover:bg-indigo-900/60 text-xs text-slate-200 font-medium" data-quest="afk">
+                        🔋 <span class="font-bold text-fuchsia-300">Emotional AFK & Burnout</span>
+                    </button>
+                    <button class="quest-btn comic-btn text-left px-2.5 py-2 rounded-xl bg-slate-800/90 hover:bg-indigo-900/60 text-xs text-slate-200 font-medium" data-quest="crit">
+                        💖 <span class="font-bold text-emerald-300">Critical Hit Apology Combo</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom: Character Traits Fusion Footer (From Reference Sheet) -->
+        <div class="comic-card rounded-xl px-3 py-2 flex items-center justify-between text-[11px] text-slate-300 bg-slate-950/90">
+            <div class="flex items-center gap-2 truncate">
+                <span class="text-cyan-400 font-bold">👁️ Cyan/Gold Heterochromia</span>
+                <span>•</span>
+                <span class="text-fuchsia-400 font-bold">🌈 Tie-Dye Hoodie</span>
+                <span class="hidden sm:inline">•</span>
+                <span class="hidden sm:inline text-emerald-400 font-bold">☘️ Irish-Egyptian Sync</span>
+            </div>
+            <button id="btn-heal-burst" class="comic-btn px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-950 font-extrabold text-[11px] shrink-0">
+                ⚡ HEAL TICK
+            </button>
+        </div>
+    </aside>
+
+    <script>
+        // ==========================================
+        // 1. EMOTION WHEEL & COACHING KNOWLEDGE BASE
+        // ==========================================
+        const EMOTION_WHEEL = [
+            {
+                core: 'JOY',
+                color: '#f59e0b',
+                bgClass: 'bg-amber-500/20 text-amber-300 border-amber-500/50',
+                subEmotions: ['Grateful', 'Tender', 'Belonging', 'Love', 'Free', 'Kindness', 'Grounded', 'Safe', 'Silly'],
+                coachLine: '"You just crit-rolled Co-op Harmony! Share your loot—compliment your partner before your energy drink buff expires."',
+                buff: '+25 Shared Loot Multiplier',
+                rig: {
+                    browInnerY: 0.08, browOuterY: 0.12, browTilt: -0.08,
+                    eyeOpen: 0.94, pupilScale: 1.15, cheekRaise: 0.12,
+                    mouthCurve: 0.36, mouthOpen: 0.18, mouthWidth: 1.18,
+                    headPitch: -0.05, headRoll: 0.06
+                }
+            },
+            {
+                core: 'GENIUS',
+                color: '#f97316',
+                bgClass: 'bg-orange-500/20 text-orange-300 border-orange-500/50',
+                subEmotions: ['Inspired', 'In Awe', 'Curious', 'Brave', 'In Flow', 'Manic', 'Empowered', 'Motivated', 'Focused'],
+                coachLine: '"Cleopatra Eyeliner Vision activated! You see right through the basement fog—ask one curious, open-ended question right now."',
+                buff: '+30 Insight & Anti-Glare Clarity',
+                rig: {
+                    browInnerY: 0.14, browOuterY: 0.18, browTilt: -0.12,
+                    eyeOpen: 1.18, pupilScale: 1.25, cheekRaise: 0.07,
+                    mouthCurve: 0.25, mouthOpen: 0.12, mouthWidth: 1.10,
+                    headPitch: -0.08, headRoll: -0.05
+                }
+            },
+            {
+                core: 'ANGER',
+                color: '#ef4444',
+                bgClass: 'bg-red-500/20 text-red-300 border-red-500/50',
+                subEmotions: ['Furious', 'Irritated', 'Defensive', 'Envious', 'Suspicious', 'Frustrated', 'Aggressive', 'Tense'],
+                coachLine: '"Whoa, Elder—your rage meter is redlining! Drop the keyboard, unequip Defensive Armor, and take 3 deep breaths before replying."',
+                buff: '🛡️ Lossy Rage Dampener Active',
+                rig: {
+                    browInnerY: -0.16, browOuterY: 0.08, browTilt: 0.38,
+                    eyeOpen: 0.72, pupilScale: 0.80, cheekRaise: 0.04,
+                    mouthCurve: -0.26, mouthOpen: 0.14, mouthWidth: 0.90,
+                    headPitch: 0.10, headRoll: -0.03
+                }
+            },
+            {
+                core: 'SAD',
+                color: '#3b82f6',
+                bgClass: 'bg-blue-500/20 text-blue-300 border-blue-500/50',
+                subEmotions: ['Heartbroken', 'Exhausted', 'Numb', 'Burnt Out', 'Isolated', 'Lonely', 'Hurt', 'Disappointed'],
+                coachLine: '"Low HP detected in the basement sanctuary. Tell your partner: \'I\'m feeling burnt out and need a 10-minute co-op hug.\'"',
+                buff: '💖 Cozy Hoodie Regeneration +20/s',
+                rig: {
+                    browInnerY: 0.10, browOuterY: -0.14, browTilt: -0.32,
+                    eyeOpen: 0.65, pupilScale: 0.95, cheekRaise: -0.04,
+                    mouthCurve: -0.30, mouthOpen: 0.04, mouthWidth: 0.88,
+                    headPitch: 0.16, headRoll: 0.08
+                }
+            },
+            {
+                core: 'FEAR',
+                color: '#a855f7',
+                bgClass: 'bg-purple-500/20 text-purple-300 border-purple-500/50',
+                subEmotions: ['Terrified', 'Overwhelmed', 'Anxious', 'Vulnerable', 'Insecure', 'Worried', 'Surprised', 'Fragile'],
+                coachLine: '"Vulnerability isn\'t a debuff, Elder! Name your anxiety out loud—turning hidden fears into team quests builds unbreakable trust."',
+                buff: '☘️ Four-Leaf Courage Aura',
+                rig: {
+                    browInnerY: 0.20, browOuterY: 0.12, browTilt: -0.22,
+                    eyeOpen: 1.30, pupilScale: 0.72, cheekRaise: -0.02,
+                    mouthCurve: -0.14, mouthOpen: 0.34, mouthWidth: 0.84,
+                    headPitch: -0.06, headRoll: -0.07
+                }
+            },
+            {
+                core: 'DISGUST',
+                color: '#22c55e',
+                bgClass: 'bg-green-500/20 text-green-300 border-green-500/50',
+                subEmotions: ['Aversion', 'Nauseous', 'Judgemental', 'Humiliated', 'Ashamed', 'Self-Conscious', 'Disapproval'],
+                coachLine: '"Cringe alert! Don\'t let silent judgment poison the guild chat—swap criticism for a clear boundary with zero toxicity."',
+                buff: '🧪 Toxic Aversion Purge',
+                rig: {
+                    browInnerY: -0.10, browOuterY: -0.04, browTilt: 0.22,
+                    eyeOpen: 0.60, pupilScale: 0.85, cheekRaise: 0.15,
+                    mouthCurve: -0.22, mouthOpen: 0.08, mouthWidth: 0.82,
+                    headPitch: 0.05, headRoll: 0.10
+                }
+            }
+        ];
+
+        const ELDER_QUESTS = {
+            raid: {
+                sector: 'GENIUS',
+                sub: 'In Flow',
+                dialogue: '"Guild Elder Rule #42: Schedule Raid Night on the shared calendar AND lock in a distraction-free Boss Date Night. Never AFK mid-conversation!"',
+                buff: '+40 Calendar Sync & Trust'
+            },
+            loot: {
+                sector: 'JOY',
+                sub: 'Grateful',
+                dialogue: '"Stop hoarding chore aggro! Treat household tasks like co-op loot drops—thank your partner every time they clear a sink dungeon."',
+                buff: '+35 Domestic Harmony'
+            },
+            afk: {
+                sector: 'SAD',
+                sub: 'Burnt Out',
+                dialogue: '"When social battery hits 1%, don\'t ghost in the basement. Ping your partner: \'Entering low-power cozy hoodie mode, back at 8 PM!\'"',
+                buff: '+50 Anti-Burnout Shield'
+            },
+            crit: {
+                sector: 'FEAR',
+                sub: 'Vulnerable',
+                dialogue: '"Execute the 3-Hit Apology Combo: 1) Own your lag, 2) Validate their hurt without excuses, 3) Patch the behavior before next tick!"',
+                buff: '🏆 Relationship Prestige +100'
+            }
+        };
+
+        // ==========================================
+        // 2. CARTOON CEL-SHADED 3D SCENE & AVATAR
+        // ==========================================
+        let scene, camera, renderer, toonGradientMap;
+        let headGroup, leftBrow, rightBrow, leftEyeGroup, rightEyeGroup, leftPupil, rightPupil;
+        let leftEyelid, rightEyelid, leftCheek, rightCheek, mouthMesh, lowerJaw;
+        let glassesGroup, headsetGroup, hoodieGroup, healRingMesh;
+        let rimLight, auraLight;
+
+        // Current & Target Rig States
+        const currentRig = {
+            browInnerY: 0, browOuterY: 0, browTilt: 0,
+            eyeOpen: 1, pupilScale: 1, cheekRaise: 0,
+            mouthCurve: 0, mouthOpen: 0.05, mouthWidth: 1,
+            headPitch: 0, headRoll: 0, headYaw: 0
+        };
+        let targetRig = { ...currentRig };
+        let targetColor = new THREE.Color('#f97316');
+
+        // Simulation & Lossy-Speed Frame Heal State
+        let autoCycle = true;
+        let speedMultiplier = 2.5; // Default Overclock
+        let baseInterval = 2.6;
+        let cycleTimer = baseInterval / speedMultiplier;
+        let blinkTimer = 0;
+        let isBlinking = false;
+        let healPulse = 0;
+
+        // Orbit Camera State
+        let isDragging = false;
+        let prevMouse = { x: 0, y: 0 };
+        let camSpherical = { theta: 0.08, phi: Math.PI / 2 - 0.04, radius: 6.4 };
+
+        function createToonGradient() {
+            // 3-step sharp cel-shading ramp for bold comic look
+            const canvas = document.createElement('canvas');
+            canvas.width = 4;
+            canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#555555';
+            ctx.fillRect(0, 0, 1, 1);
+            ctx.fillStyle = '#aaaaaa';
+            ctx.fillRect(1, 0, 1, 1);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(2, 0, 2, 1);
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.minFilter = THREE.NearestFilter;
+            tex.magFilter = THREE.NearestFilter;
+            return tex;
+        }
+
+        function createTieDyeTexture() {
+            // Procedural Psychedelic Neon Swirl texture inspired by reference hoodie
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            const imgData = ctx.createImageData(256, 256);
+            for (let y = 0; y < 256; y++) {
+                for (let x = 0; x < 256; x++) {
+                    const dx = x - 128;
+                    const dy = y - 128;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const angle = Math.atan2(dy, dx) + dist * 0.065;
+                    const idx = (y * 256 + x) * 4;
+                    imgData.data[idx] = Math.floor(150 + 105 * Math.sin(angle * 3));
+                    imgData.data[idx + 1] = Math.floor(150 + 105 * Math.sin(angle * 3 + 2.1));
+                    imgData.data[idx + 2] = Math.floor(170 + 85 * Math.sin(angle * 3 + 4.2));
+                    imgData.data[idx + 3] = 255;
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        }
+
+        function createRainbowFrameTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createLinearGradient(0, 0, 256, 0);
+            grad.addColorStop(0, '#ec4899');
+            grad.addColorStop(0.25, '#f59e0b');
+            grad.addColorStop(0.5, '#10b981');
+            grad.addColorStop(0.75, '#06b6d4');
+            grad.addColorStop(1, '#a855f7');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 256, 32);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // Helper to wrap any mesh with a bold black comic ink outline (Inverted Hull)
+        function addComicOutline(mesh, scaleFactor = 1.045) {
+            const outlineMat = new THREE.MeshBasicMaterial({
+                color: 0x090d16,
+                side: THREE.BackSide
+            });
+            const outlineMesh = new THREE.Mesh(mesh.geometry, outlineMat);
+            outlineMesh.scale.multiplyScalar(scaleFactor);
+            mesh.add(outlineMesh);
+        }
+
+        function initScene() {
+            const container = document.getElementById('canvas-container');
+            toonGradientMap = createToonGradient();
+
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x070913, 0.045);
+
+            camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 100);
+            updateCameraPosition();
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            // Crisp Cartoon Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.72);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.95);
+            dirLight.position.set(3, 5, 6);
+            scene.add(dirLight);
+
+            rimLight = new THREE.PointLight(0x06b6d4, 2.0, 16);
+            rimLight.position.set(-4, 2.5, -2.5);
+            scene.add(rimLight);
+
+            auraLight = new THREE.PointLight(0xf97316, 1.5, 14);
+            auraLight.position.set(3.5, -2, 3);
+            scene.add(auraLight);
+
+            buildCartoonAvatar();
+            buildSubHzHealRing();
+            setupUI();
+            setupControls(container);
+
+            // Start in GENIUS / In Flow
+            triggerEmotion(EMOTION_WHEEL[1], 'In Flow');
+        }
+
+        function buildCartoonAvatar() {
+            headGroup = new THREE.Group();
+            scene.add(headGroup);
+
+            // Cel-Shaded Materials
+            const skinMat = new THREE.MeshToonMaterial({ color: 0xf7cbb0, gradientMap: toonGradientMap });
+            const hairMat = new THREE.MeshToonMaterial({ color: 0xf3e5ab, gradientMap: toonGradientMap }); // Blonde swept hair
+            const darkRootMat = new THREE.MeshToonMaterial({ color: 0x3b2f2f, gradientMap: toonGradientMap });
+            const browMat = new THREE.MeshToonMaterial({ color: 0x291d18, gradientMap: toonGradientMap });
+            const scleraMat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: toonGradientMap });
+            const linerMat = new THREE.MeshBasicMaterial({ color: 0x05070c }); // Bold Cleopatra Eyeliner
+            const lipMat = new THREE.MeshToonMaterial({ color: 0xe8798a, gradientMap: toonGradientMap });
+            const cheekMat = new THREE.MeshBasicMaterial({ color: 0xf43f5e, transparent: true, opacity: 0.32 });
+
+            // Heterochromia Irises (Left = Electric Cyan, Right = Radiant Gold)
+            const cyanIrisMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
+            const goldIrisMat = new THREE.MeshBasicMaterial({ color: 0xffb703 });
+            const pupilMat = new THREE.MeshBasicMaterial({ color: 0x05070c });
+
+            // 1. Cranium
+            const craniumGeo = new THREE.SphereGeometry(1.38, 36, 36);
+            craniumGeo.scale(0.92, 1.12, 0.94);
+            const cranium = new THREE.Mesh(craniumGeo, skinMat);
+            cranium.position.set(0, 0.25, 0);
+            addComicOutline(cranium, 1.035);
+            headGroup.add(cranium);
+
+            // 2. Articulated Cartoon Jaw
+            lowerJaw = new THREE.Group();
+            lowerJaw.position.set(0, -0.32, 0.08);
+            const jawGeo = new THREE.SphereGeometry(1.04, 32, 32);
+            jawGeo.scale(0.84, 0.88, 0.88);
+            const jawMesh = new THREE.Mesh(jawGeo, skinMat);
+            jawMesh.position.set(0, -0.34, 0.04);
+            addComicOutline(jawMesh, 1.04);
+            lowerJaw.add(jawMesh);
+            headGroup.add(lowerJaw);
+
+            // 3. Blonde Hair Cap + Side Swept Bangs + Bun
+            const hairGeo = new THREE.SphereGeometry(1.45, 36, 36, 0, Math.PI * 2, 0, Math.PI * 0.56);
+            hairGeo.scale(0.95, 1.14, 0.98);
+            const hairMesh = new THREE.Mesh(hairGeo, hairMat);
+            hairMesh.position.set(0, 0.34, -0.05);
+            hairMesh.rotation.x = -0.18;
+            addComicOutline(hairMesh, 1.035);
+            headGroup.add(hairMesh);
+
+            // Top Bun
+            const bunGeo = new THREE.SphereGeometry(0.58, 24, 24);
+            const bunMesh = new THREE.Mesh(bunGeo, hairMat);
+            bunMesh.position.set(0, 1.68, -0.55);
+            addComicOutline(bunMesh, 1.05);
+            headGroup.add(bunMesh);
+
+            // 4. Stylized Nose
+            const noseGeo = new THREE.ConeGeometry(0.18, 0.52, 20);
+            const noseMesh = new THREE.Mesh(noseGeo, skinMat);
+            noseMesh.position.set(0, 0.04, 1.35);
+            noseMesh.rotation.x = 0.26;
+            addComicOutline(noseMesh, 1.08);
+            headGroup.add(noseMesh);
+
+            // 5. Heterochromia Eyes + Bold Cleopatra Winged Eyeliner
+            function createCartoonEye(xPos, irisMaterial, sideSign) {
+                const eyeGroup = new THREE.Group();
+                eyeGroup.position.set(xPos, 0.36, 1.14);
+
+                const eyeball = new THREE.Mesh(new THREE.SphereGeometry(0.27, 28, 28), scleraMat);
+                eyeGroup.add(eyeball);
+
+                const iris = new THREE.Mesh(new THREE.SphereGeometry(0.15, 24, 24), irisMaterial);
+                iris.position.set(0, 0, 0.21);
+                iris.scale.set(1, 1, 0.4);
+                eyeGroup.add(iris);
+
+                const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.075, 20, 20), pupilMat);
+                pupil.position.set(0, 0, 0.26);
+                pupil.scale.set(1, 1, 0.3);
+                eyeGroup.add(pupil);
+
+                // Anime/Comic Catchlight Sparkle
+                const sparkle = new THREE.Mesh(new THREE.SphereGeometry(0.032, 12, 12), scleraMat);
+                sparkle.position.set(-0.045, 0.045, 0.275);
+                eyeGroup.add(sparkle);
+
+                // Bold Cleopatra Winged Eyeliner Wing
+                const wingGeo = new THREE.ConeGeometry(0.055, 0.28, 12);
+                const wing = new THREE.Mesh(wingGeo, linerMat);
+                wing.position.set(sideSign * 0.28, 0.06, 0.14);
+                wing.rotation.z = sideSign * -1.15;
+                wing.rotation.y = sideSign * 0.4;
+                eyeGroup.add(wing);
+
+                // Upper Eyelid
+                const eyelidGeo = new THREE.SphereGeometry(0.285, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.52);
+                const eyelid = new THREE.Mesh(eyelidGeo, skinMat);
+                eyelid.rotation.x = -Math.PI * 0.36;
+                eyeGroup.add(eyelid);
+
+                return { eyeGroup, pupil, eyelid };
+            }
+
+            const lEye = createCartoonEye(-0.46, cyanIrisMat, -1);
+            leftEyeGroup = lEye.eyeGroup;
+            leftPupil = lEye.pupil;
+            leftEyelid = lEye.eyelid;
+
+            const rEye = createCartoonEye(0.46, goldIrisMat, 1);
+            rightEyeGroup = rEye.eyeGroup;
+            rightPupil = rEye.pupil;
+            rightEyelid = rEye.eyelid;
+
+            headGroup.add(leftEyeGroup, rightEyeGroup);
+
+            // 6. Bold Expressive Eyebrows
+            const browGeo = new THREE.BoxGeometry(0.50, 0.095, 0.14);
+            leftBrow = new THREE.Mesh(browGeo, browMat);
+            leftBrow.position.set(-0.46, 0.72, 1.24);
+            addComicOutline(leftBrow, 1.08);
+
+            rightBrow = new THREE.Mesh(browGeo, browMat);
+            rightBrow.position.set(0.46, 0.72, 1.24);
+            addComicOutline(rightBrow, 1.08);
+
+            headGroup.add(leftBrow, rightBrow);
+
+            // 7. Stylish Oversized Rainbow Glasses (From Reference Sheet)
+            glassesGroup = new THREE.Group();
+            glassesGroup.position.set(0, 0.35, 1.44);
+            const rainbowMat = new THREE.MeshToonMaterial({
+                map: createRainbowFrameTexture(),
+                gradientMap: toonGradientMap
+            });
+            const lensGlassMat = new THREE.MeshBasicMaterial({
+                color: 0x38bdf8,
+                transparent: true,
+                opacity: 0.18
+            });
+
+            function buildLensFrame(offsetX) {
+                const fGroup = new THREE.Group();
+                fGroup.position.set(offsetX, 0, 0);
+                // Oversized rounded-square torus frame
+                const frameGeo = new THREE.TorusGeometry(0.38, 0.048, 14, 28);
+                frameGeo.scale(1.12, 0.95, 1);
+                const frame = new THREE.Mesh(frameGeo, rainbowMat);
+                addComicOutline(frame, 1.06);
+                fGroup.add(frame);
+
+                // Anti-glare tinted lens
+                const lensGeo = new THREE.CircleGeometry(0.36, 24);
+                lensGeo.scale(1.1, 0.92, 1);
+                const lens = new THREE.Mesh(lensGeo, lensGlassMat);
+                fGroup.add(lens);
+                return fGroup;
+            }
+
+            const leftFrame = buildLensFrame(-0.49);
+            const rightFrame = buildLensFrame(0.49);
+            const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.06, 0.06), rainbowMat);
+            bridge.position.set(0, 0.06, 0);
+            addComicOutline(bridge, 1.08);
+
+            glassesGroup.add(leftFrame, rightFrame, bridge);
+            headGroup.add(glassesGroup);
+
+            // 8. Ergonomic RGB Gamer Headset (From Reference Sheet)
+            headsetGroup = new THREE.Group();
+            const headsetBodyMat = new THREE.MeshToonMaterial({ color: 0x312e81, gradientMap: toonGradientMap });
+            const earCupGlowMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4 });
+
+            // Headband arc
+            const bandGeo = new THREE.TorusGeometry(1.52, 0.11, 14, 36, Math.PI);
+            const band = new THREE.Mesh(bandGeo, headsetBodyMat);
+            band.position.set(0, 0.25, -0.05);
+            addComicOutline(band, 1.05);
+            headsetGroup.add(band);
+
+            // Left & Right Ear Cups
+            [-1.48, 1.48].forEach((xSide, idx) => {
+                const cupGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.24, 24);
+                cupGeo.rotateZ(Math.PI / 2);
+                const cup = new THREE.Mesh(cupGeo, headsetBodyMat);
+                cup.position.set(xSide, 0.22, -0.05);
+                addComicOutline(cup, 1.06);
+
+                const neonRing = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.035, 10, 24), earCupGlowMat);
+                neonRing.rotation.y = Math.PI / 2;
+                neonRing.position.set(xSide + (idx === 0 ? -0.13 : 0.13), 0.22, -0.05);
+                headsetGroup.add(cup, neonRing);
+            });
+
+            // Boom Mic
+            const micBoom = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.95, 10), headsetBodyMat);
+            micBoom.position.set(-1.15, -0.35, 0.65);
+            micBoom.rotation.x = 1.1;
+            micBoom.rotation.z = -0.45;
+            headsetGroup.add(micBoom);
+
+            headGroup.add(headsetGroup);
+
+            // 9. Cozy Psychedelic Tie-Dye Hoodie Collar & Shoulders
+            hoodieGroup = new THREE.Group();
+            const tieDyeMat = new THREE.MeshToonMaterial({
+                map: createTieDyeTexture(),
+                gradientMap: toonGradientMap
+            });
+
+            const collarGeo = new THREE.TorusGeometry(1.05, 0.34, 16, 32);
+            collarGeo.rotateX(Math.PI / 2 + 0.15);
+            const collar = new THREE.Mesh(collarGeo, tieDyeMat);
+            collar.position.set(0, -1.28, -0.05);
+            addComicOutline(collar, 1.04);
+            hoodieGroup.add(collar);
+
+            const torsoGeo = new THREE.CylinderGeometry(1.15, 1.65, 1.35, 28);
+            const torso = new THREE.Mesh(torsoGeo, tieDyeMat);
+            torso.position.set(0, -2.02, -0.08);
+            addComicOutline(torso, 1.035);
+            hoodieGroup.add(torso);
+
+            headGroup.add(hoodieGroup);
+
+            // 10. Cheeks & Dynamic Cartoon Mouth
+            const cheekGeo = new THREE.SphereGeometry(0.25, 16, 16);
+            cheekGeo.scale(1.1, 0.7, 0.4);
+            leftCheek = new THREE.Mesh(cheekGeo, cheekMat);
+            leftCheek.position.set(-0.64, -0.04, 1.12);
+            rightCheek = new THREE.Mesh(cheekGeo, cheekMat);
+            rightCheek.position.set(0.64, -0.04, 1.12);
+            headGroup.add(leftCheek, rightCheek);
+
+            const initialCurve = createMouthCurve(0, 0.05, 1);
+            const mouthGeo = new THREE.TubeGeometry(initialCurve, 22, 0.072, 12, false);
+            mouthMesh = new THREE.Mesh(mouthGeo, lipMat);
+            mouthMesh.position.set(0, -0.56, 1.20);
+            headGroup.add(mouthMesh);
+        }
+
+        function buildSubHzHealRing() {
+            // Visualizes the Sub-Hz Frame Heal Engine orbiting the character
+            const ringGeo = new THREE.TorusGeometry(2.35, 0.03, 12, 64);
+            ringGeo.rotateX(Math.PI / 2);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: 0x06b6d4,
+                transparent: true,
+                opacity: 0.45
+            });
+            healRingMesh = new THREE.Mesh(ringGeo, ringMat);
+            healRingMesh.position.set(0, -1.35, 0);
+            scene.add(healRingMesh);
+        }
+
+        function createMouthCurve(curveAmount, openAmount, widthScale) {
+            const w = 0.38 * widthScale;
+            const yCorner = curveAmount * 0.44;
+            const yMidTop = openAmount * 0.24;
+            const yMidBot = -openAmount * 0.44;
+
+            if (openAmount > 0.16) {
+                return new THREE.CatmullRomCurve3([
+                    new THREE.Vector3(-w, yCorner, 0),
+                    new THREE.Vector3(0, yMidTop, 0.08),
+                    new THREE.Vector3(w, yCorner, 0),
+                    new THREE.Vector3(0, yMidBot, 0.06),
+                    new THREE.Vector3(-w, yCorner, 0)
+                ]);
+            } else {
+                return new THREE.CatmullRomCurve3([
+                    new THREE.Vector3(-w, yCorner, -0.04),
+                    new THREE.Vector3(-w * 0.5, yCorner * 0.35, 0.04),
+                    new THREE.Vector3(0, 0, 0.08),
+                    new THREE.Vector3(w * 0.5, yCorner * 0.35, 0.04),
+                    new THREE.Vector3(w, yCorner, -0.04)
+                ]);
+            }
+        }
+
+        // ==========================================
+        // 3. EMOTION ENGINE & LOSSY FRAME HEALER
+        // ==========================================
+        function triggerEmotion(sectorObj, specificSub = null, customCoach = null) {
+            const subEmotion = specificSub || sectorObj.subEmotions[Math.floor(Math.random() * sectorObj.subEmotions.length)];
+            const jitter = () => (Math.random() - 0.5) * 0.14;
+
+            targetRig = {
+                browInnerY: sectorObj.rig.browInnerY + jitter() * 0.5,
+                browOuterY: sectorObj.rig.browOuterY + jitter() * 0.5,
+                browTilt: sectorObj.rig.browTilt + jitter(),
+                eyeOpen: Math.max(0.45, Math.min(1.38, sectorObj.rig.eyeOpen + jitter())),
+                pupilScale: Math.max(0.65, Math.min(1.35, sectorObj.rig.pupilScale + jitter())),
+                cheekRaise: sectorObj.rig.cheekRaise + jitter() * 0.3,
+                mouthCurve: sectorObj.rig.mouthCurve + jitter(),
+                mouthOpen: Math.max(0.02, Math.min(0.42, sectorObj.rig.mouthOpen + jitter() * 0.6)),
+                mouthWidth: Math.max(0.75, Math.min(1.25, sectorObj.rig.mouthWidth + jitter())),
+                headPitch: sectorObj.rig.headPitch + jitter() * 0.5,
+                headRoll: sectorObj.rig.headRoll + jitter() * 0.7,
+                headYaw: (Math.random() - 0.5) * 0.28
+            };
+
+            targetColor.set(sectorObj.color);
+            healPulse = 1.0; // Trigger visual sub-Hz heal pulse
+
+            // Update Left Panel Badges
+            const subEl = document.getElementById('current-sub-emotion');
+            const coreEl = document.getElementById('current-core-emotion');
+            const dotEl = document.getElementById('emotion-indicator');
+
+            subEl.textContent = subEmotion;
+            subEl.style.color = sectorObj.color;
+            coreEl.textContent = sectorObj.core;
+            coreEl.className = `inline-block px-2.5 py-0.5 rounded-lg text-xs font-bold border ${sectorObj.bgClass}`;
+            dotEl.style.backgroundColor = sectorObj.color;
+
+            // Update Right Panel Relationship Coach
+            document.getElementById('coach-dialogue').textContent = customCoach ? customCoach.dialogue : sectorObj.coachLine;
+            document.getElementById('coach-buff').textContent = `✨ Buff: ${customCoach ? customCoach.buff : sectorObj.buff}`;
+
+            // Update Lossy-Speed Telemetry readout
+            const healMs = (0.18 + Math.random() * 0.35).toFixed(2);
+            const lossyPct = (91.5 + Math.random() * 6.8).toFixed(1);
+            document.getElementById('metric-heal').textContent = `${healMs} ms`;
+            document.getElementById('metric-lossy').textContent = `${lossyPct}%`;
+
+            cycleTimer = baseInterval / speedMultiplier;
+        }
+
+        function triggerRandomEmotion() {
+            const randomSector = EMOTION_WHEEL[Math.floor(Math.random() * EMOTION_WHEEL.length)];
+            triggerEmotion(randomSector);
+        }
+
+        // ==========================================
+        // 4. UI & INTERACTION CONTROLS
+        // ==========================================
+        function setupUI() {
+            const sectorContainer = document.getElementById('sector-buttons');
+            EMOTION_WHEEL.forEach(sector => {
+                const btn = document.createElement('button');
+                btn.className = `comic-btn py-1.5 px-1.5 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 ${sector.bgClass} hover:brightness-125`;
+                btn.innerHTML = `<span class="w-2 h-2 rounded-full border border-black" style="background:${sector.color}"></span>${sector.core}`;
+                btn.addEventListener('click', () => triggerEmotion(sector));
+                sectorContainer.appendChild(btn);
+            });
+
+            document.getElementById('btn-randomize').addEventListener('click', triggerRandomEmotion);
+
+            const btnAuto = document.getElementById('btn-toggle-auto');
+            const autoText = document.getElementById('auto-text');
+            const autoDot = document.getElementById('auto-dot');
+            btnAuto.addEventListener('click', () => {
+                autoCycle = !autoCycle;
+                autoText.textContent = autoCycle ? 'Auto: ON' : 'Auto: OFF';
+                autoDot.classList.toggle('hidden', !autoCycle);
+            });
+
+            document.getElementById('btn-reset-cam').addEventListener('click', () => {
+                camSpherical = { theta: 0.08, phi: Math.PI / 2 - 0.04, radius: 6.4 };
+                updateCameraPosition();
+            });
+
+            // Morph Velocity Speed Buttons
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    speedMultiplier = parseFloat(btn.dataset.speed);
+                    document.querySelectorAll('.speed-btn').forEach(b => {
+                        b.className = 'speed-btn comic-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 text-slate-300';
+                    });
+                    btn.className = 'speed-btn comic-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-cyan-600 text-white';
+                    cycleTimer = Math.min(cycleTimer, baseInterval / speedMultiplier);
+                });
+            });
+
+            // Basement Elder Relationship Quest Buttons
+            document.querySelectorAll('.quest-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const q = ELDER_QUESTS[btn.dataset.quest];
+                    const sectorObj = EMOTION_WHEEL.find(s => s.core === q.sector) || EMOTION_WHEEL[0];
+                    triggerEmotion(sectorObj, q.sub, q);
+                });
+            });
+
+            // Instant Sub-Hz Heal Burst Button
+            document.getElementById('btn-heal-burst').addEventListener('click', () => {
+                // Snap currentRig instantly to targetRig before next Hz tick
+                for (const key in currentRig) {
+                    currentRig[key] = targetRig[key];
+                }
+                healPulse = 1.5;
+                document.getElementById('metric-heal').textContent = '0.09 ms (INSTANT)';
+                triggerRandomEmotion();
+            });
+        }
+
+        function updateCameraPosition() {
+            camera.position.x = camSpherical.radius * Math.sin(camSpherical.phi) * Math.sin(camSpherical.theta);
+            camera.position.y = camSpherical.radius * Math.cos(camSpherical.phi);
+            camera.position.z = camSpherical.radius * Math.sin(camSpherical.phi) * Math.cos(camSpherical.theta);
+            camera.lookAt(0, -0.05, 0);
+        }
+
+        function setupControls(container) {
+            container.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                prevMouse = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - prevMouse.x;
+                const dy = e.clientY - prevMouse.y;
+                prevMouse = { x: e.clientX, y: e.clientY };
+                camSpherical.theta -= dx * 0.007;
+                camSpherical.phi = Math.max(0.45, Math.min(Math.PI - 0.45, camSpherical.phi - dy * 0.007));
+                updateCameraPosition();
+            });
+
+            window.addEventListener('mouseup', () => { isDragging = false; });
+
+            container.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                camSpherical.radius = Math.max(3.8, Math.min(11, camSpherical.radius + e.deltaY * 0.004));
+                updateCameraPosition();
+            }, { passive: false });
+
+            container.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            }, { passive: true });
+
+            container.addEventListener('touchmove', (e) => {
+                if (!isDragging || e.touches.length !== 1) return;
+                const dx = e.touches[0].clientX - prevMouse.x;
+                const dy = e.touches[0].clientY - prevMouse.y;
+                prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                camSpherical.theta -= dx * 0.008;
+                camSpherical.phi = Math.max(0.45, Math.min(Math.PI - 0.45, camSpherical.phi - dy * 0.008));
+                updateCameraPosition();
+            }, { passive: true });
+
+            container.addEventListener('touchend', () => { isDragging = false; });
+
+            window.addEventListener('resize', () => {
+                if (!container.clientWidth || !container.clientHeight) return;
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+        }
+
+        // ==========================================
+        // 5. SUB-HZ LOSSY-SPEED ANIMATION LOOP
+        // ==========================================
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const dt = Math.min(clock.getDelta(), 0.05);
+            const elapsed = clock.getElapsedTime();
+
+            // Auto-cycle timer scaled by Lossy Velocity
+            if (autoCycle) {
+                cycleTimer -= dt;
+                if (cycleTimer <= 0) {
+                    triggerRandomEmotion();
+                }
+                document.getElementById('cycle-timer').textContent = `Next shift: ${Math.max(0, cycleTimer).toFixed(2)}s`;
+            } else {
+                document.getElementById('cycle-timer').textContent = `Paused`;
+            }
+
+            // Fast autonomic blink
+            blinkTimer += dt;
+            if (!isBlinking && blinkTimer > 3.0 + Math.random() * 2) {
+                isBlinking = true;
+                blinkTimer = 0;
+            }
+            let blinkFactor = 0;
+            if (isBlinking) {
+                blinkFactor = Math.sin((blinkTimer / 0.14) * Math.PI);
+                if (blinkTimer >= 0.14) {
+                    isBlinking = false;
+                    blinkFactor = 0;
+                }
+            }
+
+            // Lossy-speed sub-tick interpolation (snappy exponential heal before Hz tick)
+            const lerpFactor = Math.min(1, (8.5 * speedMultiplier) * dt);
+            for (const key in currentRig) {
+                currentRig[key] += (targetRig[key] - currentRig[key]) * lerpFactor;
+            }
+
+            rimLight.color.lerp(targetColor, lerpFactor);
+            auraLight.color.lerp(targetColor, lerpFactor);
+
+            // Sub-Hz Heal Ring Pulse Animation
+            if (healPulse > 0) {
+                healPulse = Math.max(0, healPulse - dt * 2.5);
+                const s = 1 + (1 - healPulse) * 0.25;
+                healRingMesh.scale.set(s, s, 1);
+                healRingMesh.material.opacity = 0.25 + healPulse * 0.55;
+                healRingMesh.material.color.copy(targetColor);
+            }
+            healRingMesh.rotation.z = elapsed * 1.2;
+
+            // Apply Rig to Cartoon Head
+            headGroup.position.y = Math.sin(elapsed * 2.2) * 0.045;
+            headGroup.rotation.x = currentRig.headPitch + Math.sin(elapsed * 1.3) * 0.02;
+            headGroup.rotation.y = currentRig.headYaw + Math.cos(elapsed * 1.0) * 0.035;
+            headGroup.rotation.z = currentRig.headRoll;
+
+            // Eyebrows
+            const avgBrowY = (currentRig.browInnerY + currentRig.browOuterY) * 0.5;
+            leftBrow.position.y = 0.72 + avgBrowY;
+            rightBrow.position.y = 0.72 + avgBrowY;
+            leftBrow.rotation.z = -currentRig.browTilt;
+            rightBrow.rotation.z = currentRig.browTilt;
+
+            // Eyes & Eyelids
+            const effectiveEyeOpen = Math.max(0.05, currentRig.eyeOpen * (1 - blinkFactor));
+            leftEyeGroup.scale.y = Math.min(1.22, effectiveEyeOpen);
+            rightEyeGroup.scale.y = Math.min(1.22, effectiveEyeOpen);
+
+            const lidPitch = -Math.PI * (0.48 - (1 - effectiveEyeOpen) * 0.35);
+            leftEyelid.rotation.x = lidPitch;
+            rightEyelid.rotation.x = lidPitch;
+
+            leftPupil.scale.set(currentRig.pupilScale, currentRig.pupilScale, 0.3);
+            rightPupil.scale.set(currentRig.pupilScale, currentRig.pupilScale, 0.3);
+
+            // Cheeks & Jaw
+            leftCheek.position.y = -0.04 + currentRig.cheekRaise;
+            rightCheek.position.y = -0.04 + currentRig.cheekRaise;
+
+            lowerJaw.position.y = -0.32 - currentRig.mouthOpen * 0.30;
+            lowerJaw.rotation.x = currentRig.mouthOpen * 0.24;
+
+            // Dynamic Cartoon Mouth Tube
+            mouthMesh.geometry.dispose();
+            const updatedCurve = createMouthCurve(currentRig.mouthCurve, currentRig.mouthOpen, currentRig.mouthWidth);
+            mouthMesh.geometry = new THREE.TubeGeometry(updatedCurve, 22, 0.072, 12, false);
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = function () {
+            initScene();
+            animate();
+        };
+    </script>
+</body>
+</html>
