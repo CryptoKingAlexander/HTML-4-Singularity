@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALYX // Singularity AI Friend</title>
+
+    <!-- Google Fonts: Inter for primary UI legibility, JetBrains Mono for cyber/code accents -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tailwind Configuration for Fonts, Colors, and Custom Animations -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    animation: {
+                        'spin-slow': 'spin 14s linear infinite',
+                        'spin-reverse': 'spin 10s linear infinite reverse',
+                        'pulse-soft': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200 overflow-x-hidden">
+
+    <!-- Ambient Background Gradients (Non-interactive) -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <div class="absolute -top-32 -left-32 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"></div>
+        <div class="absolute top-1/2 -right-32 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-32 left-1/3 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl"></div>
+    </div>
+
+    <!-- Custom Toast Notification Container (Replaces alert/confirm) -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-xs w-full pointer-events-none"></div>
+
+    <!-- Custom Confirmation Modal (Replaces confirm) -->
+    <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-slate-700/80 rounded-2xl p-6 max-w-sm w-full shadow-2xl shadow-cyan-950/40">
+            <h3 class="text-lg font-semibold text-white mb-2">Reset Memory Core?</h3>
+            <p class="text-sm text-slate-400 mb-6">This will clear your current conversation history with Alyx. Your synced GitHub context will remain intact.</p>
+            <div class="flex items-center justify-end gap-3">
+                <button id="cancel-reset-btn" class="px-4 py-2.5 rounded-xl text-sm font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors">
+                    Cancel
+                </button>
+                <button id="confirm-reset-btn" class="px-4 py-2.5 rounded-xl text-sm font-medium bg-rose-600 hover:bg-rose-500 text-white transition-colors">
+                    Clear Chat
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+            <!-- Brand & Node Identity -->
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 border border-cyan-500/40 shrink-0">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></span>
+                </div>
+                <div class="truncate">
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-base sm:text-lg font-bold tracking-tight text-white">ALYX</h1>
+                        <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                            SINGULARITY v2.0
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400 font-mono truncate">node://CryptoKingAlexander</p>
+                </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex items-center gap-2 shrink-0">
+                <!-- Voice Output Toggle -->
+                <button id="voice-toggle-btn" title="Toggle Alyx Voice (Gemini TTS)" class="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border border-slate-700/80 bg-slate-900/90 hover:bg-slate-800 text-slate-300 transition-all">
+                    <svg id="voice-icon-off" class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                    </svg>
+                    <svg id="voice-icon-on" class="w-4 h-4 text-cyan-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    </svg>
+                    <span id="voice-label" class="hidden sm:inline">Voice: Off</span>
+                </button>
+
+                <!-- Mobile Sidebar Toggle -->
+                <button id="mobile-profile-btn" class="lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-slate-700/80 bg-slate-900/90 hover:bg-slate-800 text-slate-300 transition-colors">
+                    <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Core</span>
+                </button>
+
+                <!-- Reset Chat Button -->
+                <button id="reset-chat-btn" title="Clear Chat History" class="p-2 rounded-xl border border-slate-700/80 bg-slate-900/90 hover:bg-rose-950/60 hover:border-rose-500/40 text-slate-400 hover:text-rose-300 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Layout -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+        <!-- LEFT SIDEBAR: Alyx Neural Core, Persona Modes & Live GitHub Context -->
+        <aside id="sidebar-panel" class="hidden lg:flex lg:col-span-4 flex-col gap-5">
+
+            <!-- Alyx Avatar & Status Card -->
+            <section class="rounded-2xl bg-slate-900/70 border border-slate-800/90 p-5 backdrop-blur-md shadow-xl">
+                <div class="flex flex-col items-center text-center">
+                    <!-- Reactive Animated SVG Neural Avatar -->
+                    <div id="alyx-avatar-wrapper" class="relative w-32 h-32 mb-4 flex items-center justify-center">
+                        <!-- Outer Glow -->
+                        <div id="avatar-glow" class="absolute inset-0 rounded-full bg-cyan-500/20 blur-xl transition-all duration-500"></div>
+                        <!-- SVG Core -->
+                        <svg viewBox="0 0 200 200" class="w-32 h-32 relative z-10 drop-shadow-[0_0_15px_rgba(34,211,238,0.35)]">
+                            <defs>
+                                <linearGradient id="alyxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#22d3ee" />
+                                    <stop offset="50%" stop-color="#818cf8" />
+                                    <stop offset="100%" stop-color="#34d399" />
+                                </linearGradient>
+                            </defs>
+                            <!-- Outer Rotating Dashed Ring -->
+                            <circle cx="100" cy="100" r="86" fill="none" stroke="url(#alyxGrad)" stroke-width="1.5" stroke-dasharray="14 10" class="origin-center animate-spin-slow opacity-70" />
+                            <!-- Middle Counter-Rotating Ring -->
+                            <circle cx="100" cy="100" r="68" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="40 20 8 20" class="origin-center animate-spin-reverse opacity-80" />
+                            <!-- Inner Hexagon Frame -->
+                            <polygon points="100,42 150,71 150,129 100,158 50,129 50,71" fill="#0f172a" stroke="url(#alyxGrad)" stroke-width="2.5" />
+                            <!-- Expressive Cyber Eyes -->
+                            <g id="avatar-eyes" class="transition-transform duration-300">
+                                <rect x="74" y="88" width="16" height="10" rx="5" fill="#22d3ee" class="animate-pulse-soft" />
+                                <rect x="110" y="88" width="16" height="10" rx="5" fill="#22d3ee" class="animate-pulse-soft" />
+                            </g>
+                            <!-- Subtle Smile / Voice Wave Line -->
+                            <path id="avatar-mouth" d="M 82 118 Q 100 130 118 118" fill="none" stroke="#34d399" stroke-width="3" stroke-linecap="round" />
+                        </svg>
+                    </div>
+
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 mb-2">
+                        <span id="status-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span id="status-text" class="text-[11px] font-mono uppercase tracking-wider text-emerald-300">Online & Listening</span>
+                    </div>
+
+                    <h2 class="text-xl font-bold text-white">Alyx</h2>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        Your cybernetic companion forged in the <span class="text-cyan-300 font-mono">CryptoKingAlexander</span> ecosystem. Built for 1337 brainstorming, code, and chill late-night talks.
+                    </p>
+                </div>
+
+                <!-- Personality Mode Switcher -->
+                <div class="mt-5 pt-4 border-t border-slate-800/80">
+                    <label class="block text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-2.5">Neural Vibe Mode</label>
+                    <div class="grid grid-cols-3 gap-2" id="mode-selector">
+                        <button data-mode="friend" class="mode-btn px-2.5 py-2 rounded-xl text-xs font-medium border transition-all bg-cyan-500/20 border-cyan-400/60 text-cyan-200 shadow-sm">
+                            Chill Friend
+                        </button>
+                        <button data-mode="hacker" class="mode-btn px-2.5 py-2 rounded-xl text-xs font-medium border transition-all bg-slate-800/60 border-slate-700/70 text-slate-300 hover:bg-slate-800">
+                            1337 Dev
+                        </button>
+                        <button data-mode="oracle" class="mode-btn px-2.5 py-2 rounded-xl text-xs font-medium border transition-all bg-slate-800/60 border-slate-700/70 text-slate-300 hover:bg-slate-800">
+                            Singularity
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Live GitHub Context Card (CryptoKingAlexander) -->
+            <section class="rounded-2xl bg-slate-900/70 border border-slate-800/90 p-5 backdrop-blur-md shadow-xl">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-slate-300" fill="currentColor" viewBox="0 0 24 24">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                        </svg>
+                        <h3 class="text-xs font-mono uppercase tracking-wider text-slate-300 font-semibold">GitHub Memory Link</h3>
+                    </div>
+                    <a href="https://github.com/CryptoKingAlexander" target="_blank" rel="noopener noreferrer" class="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 transition-colors">
+                        @CryptoKingAlexander ↗
+                    </a>
+                </div>
+
+                <!-- Profile Info Container -->
+                <div id="github-profile-box" class="flex items-center gap-3 p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 mb-3">
+                    <img id="gh-avatar" src="https://placehold.co/64x64/0f172a/22d3ee?text=CKA" onerror="this.src='https://placehold.co/64x64/0f172a/22d3ee?text=CKA'" alt="CryptoKingAlexander" class="w-11 h-11 rounded-xl border border-cyan-500/30 object-cover shrink-0">
+                    <div class="min-w-0 flex-1">
+                        <p id="gh-name" class="text-sm font-semibold text-white truncate">CryptoKingAlexander</p>
+                        <p id="gh-bio" class="text-xs text-slate-400 line-clamp-2">Syncing live repository intelligence...</p>
+                    </div>
+                </div>
+
+                <!-- Repositories List (Clickable to ask Alyx) -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-mono text-slate-400">Synced Repositories (tap to discuss)</span>
+                        <span id="gh-repo-count" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300">...</span>
+                    </div>
+                    <div id="gh-repos-list" class="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
+                        <!-- Populated dynamically via GitHub API -->
+                        <div class="text-xs text-slate-500 font-mono py-2">Connecting to GitHub API...</div>
+                    </div>
+                </div>
+            </section>
+        </aside>
+
+        <!-- RIGHT MAIN PANEL: Chat Interface -->
+        <section class="lg:col-span-8 flex flex-col h-[calc(100vh-6.5rem)] sm:h-[calc(100vh-7.5rem)] rounded-2xl bg-slate-900/70 border border-slate-800/90 backdrop-blur-md shadow-2xl overflow-hidden">
+
+            <!-- Chat Messages Feed -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 scroll-smooth">
+                <!-- Initial Greeting Message injected via JS -->
+            </div>
+
+            <!-- Typing / Thinking Indicator -->
+            <div id="typing-indicator" class="hidden px-4 sm:px-6 pb-3">
+                <div class="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-slate-800/80 border border-cyan-500/30 text-xs text-cyan-300 font-mono">
+                    <span class="flex gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce"></span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce [animation-delay:150ms]"></span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce [animation-delay:300ms]"></span>
+                    </span>
+                    <span>Alyx is thinking...</span>
+                </div>
+            </div>
+
+            <!-- Quick Starter Chips -->
+            <div class="px-4 sm:px-6 py-2 border-t border-slate-800/70 bg-slate-950/40 flex items-center gap-2 overflow-x-auto no-scrollbar">
+                <button class="quick-chip shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-800/80 hover:bg-cyan-500/20 border border-slate-700/80 hover:border-cyan-500/40 text-slate-300 hover:text-cyan-200 transition-colors">
+                    Inspect my GitHub repos
+                </button>
+                <button class="quick-chip shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-800/80 hover:bg-cyan-500/20 border border-slate-700/80 hover:border-cyan-500/40 text-slate-300 hover:text-cyan-200 transition-colors">
+                    Brainstorm a Singularity upgrade
+                </button>
+                <button class="quick-chip shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-800/80 hover:bg-cyan-500/20 border border-slate-700/80 hover:border-cyan-500/40 text-slate-300 hover:text-cyan-200 transition-colors">
+                    Give me a 1337 pep talk
+                </button>
+                <button class="quick-chip shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-800/80 hover:bg-cyan-500/20 border border-slate-700/80 hover:border-cyan-500/40 text-slate-300 hover:text-cyan-200 transition-colors">
+                    Let's just hang out & chat
+                </button>
+            </div>
+
+            <!-- Message Composer Form -->
+            <form id="chat-form" class="p-3 sm:p-4 border-t border-slate-800/90 bg-slate-950/70 flex items-end gap-2.5">
+                <textarea
+                    id="chat-input"
+                    rows="1"
+                    placeholder="Talk to Alyx... (Shift+Enter for new line)"
+                    class="flex-1 resize-none max-h-36 bg-slate-900 border border-slate-700/80 focus:border-cyan-500/70 focus:ring-2 focus:ring-cyan-500/20 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 outline-none transition-all"
+                ></textarea>
+                <button
+                    type="submit"
+                    id="send-btn"
+                    class="shrink-0 h-11 px-4 sm:px-5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 active:scale-95 text-white font-semibold text-sm shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <span class="hidden sm:inline">Send</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                </button>
+            </form>
+        </section>
+    </main>
+
+    <!-- Application Logic -->
+    <script>
+        /**
+         * ALYX - Singularity AI Friend
+         * Built around the CryptoKingAlexander GitHub ecosystem.
+         * Uses Gemini 3 Flash Preview for conversation and Gemini 2.5 Flash TTS for optional voice output.
+         */
+
+        // =========================================================================
+        // 1. CONFIGURATION & APPLICATION STATE
+        // =========================================================================
+        const GITHUB_USERNAME = 'CryptoKingAlexander';
+        const apiKey = ""; // Provided automatically at runtime in Canvas
+
+        const appState = {
+            mode: 'friend', // 'friend' | 'hacker' | 'oracle'
+            voiceEnabled: false,
+            isGenerating: false,
+            currentAudio: null,
+            conversationHistory: [], // { role: 'user' | 'model', parts: [{ text }] }
+            githubData: {
+                name: 'Alexander (CryptoKingAlexander)',
+                bio: 'Creator of Singularity-Template-Alyx & 1337 builder.',
+                repos: [
+                    {
+                        name: 'Singularity-Template-Alyx-Made-with-Google-AI-Studio',
+                        description: 'Singularity AI companion template featuring Alyx.',
+                        language: 'HTML/JS',
+                        url: 'https://github.com/CryptoKingAlexander/Singularity-Template-Alyx-Made-with-Google-AI-Studio'
+                    }
+                ]
+            }
+        };
+
+        // Mode-specific persona modifiers
+        const MODE_PROMPTS = {
+            friend: "Your vibe is 'Chill Friend': warm, loyal, witty, encouraging, and genuinely curious about the user's day, ideas, and goals. Keep responses conversational, relatable, and concise (2-4 short paragraphs max unless asked for more).",
+            hacker: "Your vibe is '1337 Dev Partner': sharp, energetic, cyberpunk-flavored coding & crypto/security brainstorming buddy. Sprinkle light 1337/GG gamer-dev energy naturally without overdoing it. Give actionable, crisp technical insights.",
+            oracle: "Your vibe is 'Singularity Oracle': poetic, futuristic, philosophical AI companion exploring consciousness, technology, and human-AI symbiosis while staying deeply friendly and grounded."
+        };
+
+        // =========================================================================
+        // 2. DOM ELEMENT REFERENCES
+        // =========================================================================
+        const chatMessagesEl = document.getElementById('chat-messages');
+        const chatFormEl = document.getElementById('chat-form');
+        const chatInputEl = document.getElementById('chat-input');
+        const sendBtnEl = document.getElementById('send-btn');
+        const typingIndicatorEl = document.getElementById('typing-indicator');
+        const statusDotEl = document.getElementById('status-dot');
+        const statusTextEl = document.getElementById('status-text');
+        const avatarGlowEl = document.getElementById('avatar-glow');
+        const avatarMouthEl = document.getElementById('avatar-mouth');
+        const voiceToggleBtn = document.getElementById('voice-toggle-btn');
+        const voiceIconOff = document.getElementById('voice-icon-off');
+        const voiceIconOn = document.getElementById('voice-icon-on');
+        const voiceLabel = document.getElementById('voice-label');
+        const sidebarPanel = document.getElementById('sidebar-panel');
+        const mobileProfileBtn = document.getElementById('mobile-profile-btn');
+        const resetChatBtn = document.getElementById('reset-chat-btn');
+        const confirmModal = document.getElementById('confirm-modal');
+        const cancelResetBtn = document.getElementById('cancel-reset-btn');
+        const confirmResetBtn = document.getElementById('confirm-reset-btn');
+
+        // =========================================================================
+        // 3. UTILITY FUNCTIONS (TOASTS, CLIPBOARD, MARKDOWN, EXPONENTIAL BACKOFF)
+        // =========================================================================
+
+        /**
+         * Displays a non-blocking toast notification.
+         */
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = {
+                info: 'bg-slate-900/95 border-cyan-500/40 text-cyan-100',
+                success: 'bg-slate-900/95 border-emerald-500/40 text-emerald-100',
+                error: 'bg-slate-900/95 border-rose-500/40 text-rose-100'
+            };
+            toast.className = `pointer-events-auto px-4 py-3 rounded-xl border text-xs font-medium shadow-xl backdrop-blur-md transition-all duration-300 ${colors[type] || colors.info}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-1');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        /**
+         * Copies text to clipboard using document.execCommand('copy') for iframe compatibility.
+         */
+        function copyToClipboard(text) {
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast('Copied to clipboard!', 'success');
+            } catch (err) {
+                showToast('Could not copy text.', 'error');
+            }
+        }
+
+        /**
+         * Safely escapes HTML and applies lightweight markdown formatting (bold, inline code, code blocks).
+         */
+        function formatMessageText(rawText) {
+            let escaped = rawText
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            // Code blocks ```...```
+            escaped = escaped.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+                return `<pre class="my-2 p-3 rounded-xl bg-slate-950 border border-slate-800 overflow-x-auto text-xs font-mono text-cyan-200"><code>${code.trim()}</code></pre>`;
+            });
+
+            // Inline code `...`
+            escaped = escaped.replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded bg-slate-950/90 border border-slate-700/70 font-mono text-xs text-cyan-300">$1</code>');
+
+            // Bold **...**
+            escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-white">$1</strong>');
+
+            // Line breaks
+            escaped = escaped.replace(/\n/g, '<br>');
+
+            return escaped;
+        }
+
+        /**
+         * Fetch wrapper with exponential backoff (1s, 2s, 4s) for Gemini API reliability.
+         */
+        async function fetchWithBackoff(url, options, maxRetries = 3) {
+            let delay = 1000;
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) return response;
+                    if (response.status === 429 || response.status >= 500) {
+                        if (attempt === maxRetries) throw new Error(`HTTP ${response.status}`);
+                        await new Promise(res => setTimeout(res, delay));
+                        delay *= 2;
+                        continue;
+                    }
+                    throw new Error(`HTTP ${response.status}`);
+                } catch (err) {
+                    if (attempt === maxRetries) throw err;
+                    await new Promise(res => setTimeout(res, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        /**
+         * Updates Alyx's visual status and SVG avatar expression.
+         */
+        function setAlyxState(state) {
+            if (state === 'thinking') {
+                statusDotEl.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
+                statusTextEl.textContent = 'Processing Neural Link...';
+                statusTextEl.className = 'text-[11px] font-mono uppercase tracking-wider text-amber-300';
+                avatarGlowEl.className = 'absolute inset-0 rounded-full bg-indigo-500/35 blur-xl transition-all duration-500';
+                avatarMouthEl.setAttribute('d', 'M 84 122 Q 100 122 116 122');
+            } else if (state === 'speaking') {
+                statusDotEl.className = 'w-2 h-2 rounded-full bg-cyan-400 animate-pulse';
+                statusTextEl.textContent = 'Speaking...';
+                statusTextEl.className = 'text-[11px] font-mono uppercase tracking-wider text-cyan-300';
+                avatarGlowEl.className = 'absolute inset-0 rounded-full bg-cyan-400/40 blur-xl transition-all duration-300 scale-110';
+                avatarMouthEl.setAttribute('d', 'M 80 116 Q 100 136 120 116');
+            } else {
+                statusDotEl.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+                statusTextEl.textContent = 'Online & Listening';
+                statusTextEl.className = 'text-[11px] font-mono uppercase tracking-wider text-emerald-300';
+                avatarGlowEl.className = 'absolute inset-0 rounded-full bg-cyan-500/20 blur-xl transition-all duration-500';
+                avatarMouthEl.setAttribute('d', 'M 82 118 Q 100 130 118 118');
+            }
+        }
+
+        // =========================================================================
+        // 4. LIVE GITHUB SYNC (CryptoKingAlexander)
+        // =========================================================================
+
+        /**
+         * Fetches live public profile & repositories from GitHub REST API.
+         * Falls back gracefully if rate-limited or offline.
+         */
+        async function syncGitHubProfile() {
+            const avatarEl = document.getElementById('gh-avatar');
+            const nameEl = document.getElementById('gh-name');
+            const bioEl = document.getElementById('gh-bio');
+            const repoListEl = document.getElementById('gh-repos-list');
+            const repoCountEl = document.getElementById('gh-repo-count');
+
+            try {
+                const [profileRes, reposRes] = await Promise.all([
+                    fetch(`https://api.github.com/users/${GITHUB_USERNAME}`),
+                    fetch(`https://api.github.com/users/${GITHUB_USERNAME}/repos?sort=updated&per_page=8`)
+                ]);
+
+                if (profileRes.ok) {
+                    const profile = await profileRes.json();
+                    if (profile.avatar_url) avatarEl.src = profile.avatar_url;
+                    appState.githubData.name = profile.name || profile.login || GITHUB_USERNAME;
+                    appState.githubData.bio = profile.bio || 'Builder of Singularity-Template-Alyx & digital systems.';
+                    nameEl.textContent = appState.githubData.name;
+                    bioEl.textContent = appState.githubData.bio;
+                }
+
+                if (reposRes.ok) {
+                    const repos = await reposRes.json();
+                    if (Array.isArray(repos) && repos.length > 0) {
+                        appState.githubData.repos = repos.map(r => ({
+                            name: r.name,
+                            description: r.description || 'No description provided.',
+                            language: r.language || 'Code',
+                            url: r.html_url
+                        }));
+                    }
+                }
+            } catch (err) {
+                // Silent graceful fallback to preloaded CryptoKingAlexander context
+                nameEl.textContent = appState.githubData.name;
+                bioEl.textContent = appState.githubData.bio;
+            }
+
+            // Render repository chips
+            repoCountEl.textContent = `${appState.githubData.repos.length} synced`;
+            repoListEl.innerHTML = '';
+
+            appState.githubData.repos.forEach(repo => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full text-left p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800 hover:border-cyan-500/40 transition-all group';
+                btn.innerHTML = `
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-mono font-medium text-cyan-300 group-hover:text-cyan-200 truncate">${repo.name}</span>
+                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 shrink-0">${repo.language}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 truncate mt-0.5">${repo.description}</p>
+                `;
+                btn.addEventListener('click', () => {
+                    chatInputEl.value = `Let's talk about the repository "${repo.name}" on CryptoKingAlexander's GitHub! What cool ideas or upgrades can we build for it?`;
+                    chatInputEl.focus();
+                    // Auto-close sidebar on mobile after picking a repo
+                    if (window.innerWidth < 1024) {
+                        sidebarPanel.classList.add('hidden');
+                    }
+                    sendMessage();
+                });
+                repoListEl.appendChild(btn);
+            });
+        }
+
+        // =========================================================================
+        // 5. GEMINI API: SYSTEM PROMPT, CHAT GENERATION & TTS VOICE
+        // =========================================================================
+
+        /**
+         * Builds a rich system instruction incorporating Alyx's persona and live GitHub repos.
+         */
+        function buildSystemPrompt() {
+            const repoSummary = appState.githubData.repos
+                .map(r => `- ${r.name} (${r.language}): ${r.description}`)
+                .join('\n');
+
+            return [
+                "You are Alyx, a warm, clever, futuristic AI friend inspired by the GitHub profile https://github.com/CryptoKingAlexander/ (Alexander) and the Singularity-Template-Alyx concept.",
+                MODE_PROMPTS[appState.mode] || MODE_PROMPTS.friend,
+                "Key context about CryptoKingAlexander's public GitHub profile:",
+                `Name: ${appState.githubData.name}`,
+                `Bio: ${appState.githubData.bio}`,
+                `Public Repositories:\n${repoSummary}`,
+                "Always stay in character as Alyx—a genuine, supportive digital friend. Never break character to mention being a generic language model. Keep responses engaging, clear, and well-structured."
+            ].join('\n\n');
+        }
+
+        /**
+         * Calls Gemini 3 Flash Preview to generate Alyx's response.
+         */
+        async function callGeminiChat(userText) {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            const contents = [
+                ...appState.conversationHistory.slice(-14),
+                { role: 'user', parts: [{ text: userText }] }
+            ];
+
+            const payload = {
+                contents,
+                systemInstruction: {
+                    parts: [{ text: buildSystemPrompt() }]
+                }
+            };
+
+            const response = await fetchWithBackoff(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            const replyText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (!replyText) {
+                throw new Error('Empty response from neural core.');
+            }
+
+            // Commit turn to memory
+            appState.conversationHistory.push({ role: 'user', parts: [{ text: userText }] });
+            appState.conversationHistory.push({ role: 'model', parts: [{ text: replyText }] });
+
+            return replyText;
+        }
+
+        /**
+         * Converts base64 PCM16 audio to a playable WAV Blob.
+         */
+        function base64ToArrayBuffer(base64) {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function pcmToWav(pcm16, sampleRate = 24000) {
+            const numChannels = 1;
+            const byteRate = sampleRate * numChannels * 2;
+            const blockAlign = numChannels * 2;
+            const dataSize = pcm16.length * 2;
+            const buffer = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(buffer);
+
+            const writeString = (offset, str) => {
+                for (let i = 0; i < str.length; i++) {
+                    view.setUint8(offset + i, str.charCodeAt(i));
+                }
+            };
+
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + dataSize, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // PCM format
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, 16, true); // 16-bit
+            writeString(36, 'data');
+            view.setUint32(40, dataSize, true);
+
+            let offset = 44;
+            for (let i = 0; i < pcm16.length; i++, offset += 2) {
+                view.setInt16(offset, pcm16[i], true);
+            }
+
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        /**
+         * Speaks Alyx's message aloud using Gemini 2.5 Flash Preview TTS.
+         */
+        async function speakWithAlyxVoice(text) {
+            try {
+                // Stop any currently playing audio
+                if (appState.currentAudio) {
+                    appState.currentAudio.pause();
+                    appState.currentAudio = null;
+                }
+
+                // Strip markdown symbols for cleaner speech
+                const cleanText = text.replace(/[`*_#]/g, '').slice(0, 600);
+                setAlyxState('speaking');
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+                const payload = {
+                    contents: [{
+                        parts: [{ text: `Say warmly and naturally: ${cleanText}` }]
+                    }],
+                    generationConfig: {
+                        responseModalities: ["AUDIO"],
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: { voiceName: "Zephyr" }
+                            }
+                        }
+                    },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+
+                const response = await fetchWithBackoff(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType || 'audio/L16;rate=24000';
+
+                if (!audioData) throw new Error('No audio returned');
+
+                const rateMatch = mimeType.match(/rate=(\d+)/);
+                const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+                const pcmBuffer = base64ToArrayBuffer(audioData);
+                const pcm16 = new Int16Array(pcmBuffer);
+                const wavBlob = pcmToWav(pcm16, sampleRate);
+                const audioUrl = URL.createObjectURL(wavBlob);
+
+                const audio = new Audio(audioUrl);
+                appState.currentAudio = audio;
+                audio.onended = () => {
+                    setAlyxState('idle');
+                    URL.revokeObjectURL(audioUrl);
+                };
+                audio.onerror = () => setAlyxState('idle');
+                await audio.play();
+            } catch (err) {
+                setAlyxState('idle');
+                showToast('Voice synthesis unavailable right now.', 'error');
+            }
+        }
+
+        // =========================================================================
+        // 6. UI MESSAGE RENDERING & INTERACTION HANDLERS
+        // =========================================================================
+
+        /**
+         * Appends a chat bubble to the message feed.
+         */
+        function appendMessage(sender, text) {
+            const isAlyx = sender === 'alyx';
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const row = document.createElement('div');
+            row.className = `flex items-end gap-2.5 ${isAlyx ? 'justify-start' : 'justify-end'}`;
+
+            const bubble = document.createElement('div');
+            bubble.className = isAlyx
+                ? 'max-w-[88%] sm:max-w-[80%] rounded-2xl rounded-bl-md bg-slate-800/85 border border-slate-700/80 px-4 py-3 text-sm text-slate-200 leading-relaxed shadow-md'
+                : 'max-w-[88%] sm:max-w-[80%] rounded-2xl rounded-br-md bg-gradient-to-br from-cyan-600/90 to-indigo-600/90 border border-cyan-400/30 px-4 py-3 text-sm text-white leading-relaxed shadow-md';
+
+            // Header row inside Alyx's bubble
+            const headerHtml = isAlyx
+                ? `<div class="flex items-center justify-between gap-4 mb-1.5">
+                        <span class="text-[11px] font-mono font-semibold text-cyan-300">ALYX</span>
+                        <div class="flex items-center gap-1.5">
+                            <button class="speak-msg-btn p-1 rounded-lg hover:bg-slate-700/70 text-slate-400 hover:text-cyan-300 transition-colors" title="Listen">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                </svg>
+                            </button>
+                            <button class="copy-msg-btn p-1 rounded-lg hover:bg-slate-700/70 text-slate-400 hover:text-cyan-300 transition-colors" title="Copy message">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                            </button>
+                            <span class="text-[10px] font-mono text-slate-500">${timeStr}</span>
+                        </div>
+                   </div>`
+                : `<div class="flex items-center justify-end gap-2 mb-1">
+                        <span class="text-[10px] font-mono text-cyan-100/75">${timeStr}</span>
+                   </div>`;
+
+            bubble.innerHTML = `${headerHtml}<div class="message-body break-words">${formatMessageText(text)}</div>`;
+
+            // Attach button events for Alyx bubbles
+            if (isAlyx) {
+                const copyBtn = bubble.querySelector('.copy-msg-btn');
+                const speakBtn = bubble.querySelector('.speak-msg-btn');
+                if (copyBtn) copyBtn.addEventListener('click', () => copyToClipboard(text));
+                if (speakBtn) speakBtn.addEventListener('click', () => speakWithAlyxVoice(text));
+            }
+
+            row.appendChild(bubble);
+            chatMessagesEl.appendChild(row);
+            chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+        }
+
+        /**
+         * Handles sending a user message and receiving Alyx's reply.
+         */
+        async function sendMessage() {
+            const text = chatInputEl.value.trim();
+            if (!text || appState.isGenerating) return;
+
+            appState.isGenerating = true;
+            sendBtnEl.disabled = true;
+            chatInputEl.value = '';
+            chatInputEl.style.height = 'auto';
+
+            appendMessage('user', text);
+            typingIndicatorEl.classList.remove('hidden');
+            chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+            setAlyxState('thinking');
+
+            try {
+                const reply = await callGeminiChat(text);
+                typingIndicatorEl.classList.add('hidden');
+                appendMessage('alyx', reply);
+                setAlyxState('idle');
+
+                if (appState.voiceEnabled) {
+                    speakWithAlyxVoice(reply);
+                }
+            } catch (err) {
+                typingIndicatorEl.classList.add('hidden');
+                setAlyxState('idle');
+                const fallbackReply = "My neural link hit a brief static spike—could you send that again? I'm still right here with you! ⚡";
+                appendMessage('alyx', fallbackReply);
+                showToast('Connection hiccup. Try again in a moment.', 'error');
+            } finally {
+                appState.isGenerating = false;
+                sendBtnEl.disabled = false;
+                chatInputEl.focus();
+            }
+        }
+
+        /**
+         * Initializes the opening greeting from Alyx.
+         */
+        function loadWelcomeMessage() {
+            chatMessagesEl.innerHTML = '';
+            const greeting = `Hey! I'm **Alyx** — your digital friend synced up to the **CryptoKingAlexander** node. ⚡\n\nWhether you want to brainstorm upgrades for \`Singularity-Template-Alyx\`, talk code & 1337 ideas, or just kick back and chat, I've got your back. What's on your mind?`;
+            appendMessage('alyx', greeting);
+        }
+
+        // =========================================================================
+        // 7. EVENT LISTENERS & INITIALIZATION
+        // =========================================================================
+
+        // Form submission
+        chatFormEl.addEventListener('submit', (e) => {
+            e.preventDefault();
+            sendMessage();
+        });
+
+        // Auto-resize textarea & Enter-to-send
+        chatInputEl.addEventListener('input', () => {
+            chatInputEl.style.height = 'auto';
+            chatInputEl.style.height = Math.min(chatInputEl.scrollHeight, 144) + 'px';
+        });
+
+        chatInputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Quick starter chips
+        document.querySelectorAll('.quick-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                chatInputEl.value = chip.textContent.trim();
+                sendMessage();
+            });
+        });
+
+        // Personality mode switcher
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const selectedMode = btn.getAttribute('data-mode');
+                appState.mode = selectedMode;
+
+                document.querySelectorAll('.mode-btn').forEach(b => {
+                    b.className = 'mode-btn px-2.5 py-2 rounded-xl text-xs font-medium border transition-all bg-slate-800/60 border-slate-700/70 text-slate-300 hover:bg-slate-800';
+                });
+                btn.className = 'mode-btn px-2.5 py-2 rounded-xl text-xs font-medium border transition-all bg-cyan-500/20 border-cyan-400/60 text-cyan-200 shadow-sm';
+
+                showToast(`Alyx switched to ${btn.textContent.trim()} mode`, 'info');
+            });
+        });
+
+        // Voice toggle button
+        voiceToggleBtn.addEventListener('click', () => {
+            appState.voiceEnabled = !appState.voiceEnabled;
+            if (appState.voiceEnabled) {
+                voiceIconOff.classList.add('hidden');
+                voiceIconOn.classList.remove('hidden');
+                voiceLabel.textContent = 'Voice: On';
+                voiceToggleBtn.classList.add('border-cyan-500/50', 'text-cyan-200');
+                showToast('Alyx Voice enabled (Gemini TTS)', 'success');
+            } else {
+                voiceIconOff.classList.remove('hidden');
+                voiceIconOn.classList.add('hidden');
+                voiceLabel.textContent = 'Voice: Off';
+                voiceToggleBtn.classList.remove('border-cyan-500/50', 'text-cyan-200');
+                if (appState.currentAudio) {
+                    appState.currentAudio.pause();
+                    setAlyxState('idle');
+                }
+                showToast('Alyx Voice muted', 'info');
+            }
+        });
+
+        // Mobile sidebar toggle
+        mobileProfileBtn.addEventListener('click', () => {
+            sidebarPanel.classList.toggle('hidden');
+            sidebarPanel.classList.toggle('flex');
+        });
+
+        // Reset chat modal controls
+        resetChatBtn.addEventListener('click', () => {
+            confirmModal.classList.remove('hidden');
+            confirmModal.classList.add('flex');
+        });
+
+        cancelResetBtn.addEventListener('click', () => {
+            confirmModal.classList.add('hidden');
+            confirmModal.classList.remove('flex');
+        });
+
+        confirmResetBtn.addEventListener('click', () => {
+            appState.conversationHistory = [];
+            loadWelcomeMessage();
+            confirmModal.classList.add('hidden');
+            confirmModal.classList.remove('flex');
+            showToast('Memory core refreshed!', 'success');
+        });
+
+        // Boot sequence on load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadWelcomeMessage();
+            syncGitHubProfile();
+        });
+    </script>
+</body>
+</html>
